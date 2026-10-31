@@ -23,10 +23,11 @@ function Dashboard() {
         <nav className="dashboard-nav">
           <a href="#dashboard" className={selectedPage === 'Dashboard' ? 'active' : ''} onClick={() => setSelectedPage('Dashboard')}> ▦ Dashboard</a>
           <a href="#accounts" className={selectedPage === 'My Accounts' ? 'active' : ''} onClick={() => setSelectedPage('My Accounts')}>▣ My Accounts</a>
-          <a href="#transfers">⇄ Transfers</a>
-          <a href="#beneficiaries">♧ Beneficiaries</a>
-          <a href="#transactions">▤ Transactions</a>
-          <a href="#profile">⚙ Profile</a>
+          <a href="#transfers" className={selectedPage === 'Transfers' ? 'active' : ''} onClick={() => setSelectedPage('Transfers')}> ⇄ Transfers</a>
+          <a href="#beneficiaries" className={selectedPage === 'Beneficiaries' ? 'active' : ''} onClick={() => setSelectedPage('Beneficiaries')}> ♧ Beneficiaries</a>
+          <a href="#transactions" className={selectedPage === 'Transactions' ? 'active' : ''} onClick={() => setSelectedPage('Transactions')}> ▤ Transactions</a>
+         
+          <a href="#profile" className={selectedPage === 'Profile' ? 'active' : ''} onClick={() => setSelectedPage('Profile')}>⚙ Profile</a>
         </nav>
 
         <button className="logout-button" onClick={() => window.location.reload()}>
@@ -90,8 +91,7 @@ function Dashboard() {
             </button>
           </div>
         </section>
-
-        <section className="transactions-section">
+        <section id="transactions" className="transactions-section">
           <div className="section-heading">
             <h2>Recent Transactions</h2>
             <span>Sample data</span>
