@@ -3,6 +3,8 @@ import { useState } from 'react'
 import './Dashboard.css'
 
 function Dashboard() {
+const [transactionSearch, setTransactionSearch] = useState('')
+const [transactionTypeFilter, setTransactionTypeFilter] = useState('All')
 const handleReviewTransfer = () => {
   const amount = Number(transferAmount)
 
@@ -41,12 +43,43 @@ const [editName, setEditName] = useState(customerName)
 const [editEmail, setEditEmail] = useState(customerEmail)
 const [editPhone, setEditPhone] = useState(customerPhone)
 const [isTransferReviewed, setIsTransferReviewed] = useState(false)
+const [beneficiaries, setBeneficiaries] = useState([
+  {
+    id: 1,
+    name: 'Rahul Sharma',
+    email: 'rahul@example.com',
+    account: '2345',
+  },
+  {
+    id: 2,
+    name: 'Priya Reddy',
+    email: 'priya@example.com',
+    account: '6789',
+  },
+])
+
+const [isAddingBeneficiary, setIsAddingBeneficiary] = useState(false)
+const [newBeneficiaryName, setNewBeneficiaryName] = useState('')
+const [newBeneficiaryEmail, setNewBeneficiaryEmail] = useState('')
+const [newBeneficiaryAccount, setNewBeneficiaryAccount] = useState('')
   const transactions = [
     { name: 'Salary Credit', date: '28 Oct 2026', type: 'Credit', amount: '+₹45,000' },
     { name: 'Amazon Purchase', date: '26 Oct 2026', type: 'Debit', amount: '-₹2,499' },
     { name: 'Electricity Bill', date: '24 Oct 2026', type: 'Debit', amount: '-₹1,250' },
     { name: 'Refund Received', date: '22 Oct 2026', type: 'Credit', amount: '+₹850' },
+
   ]
+const filteredTransactions = transactions.filter((transaction) => {
+  const matchesSearch = transaction.name
+    .toLowerCase()
+    .includes(transactionSearch.toLowerCase())
+
+  const matchesType =
+    transactionTypeFilter === 'All' ||
+    transaction.type === transactionTypeFilter
+
+  return matchesSearch && matchesType
+})
 
   return (
     <div className="dashboard">
@@ -189,7 +222,227 @@ const [isTransferReviewed, setIsTransferReviewed] = useState(false)
   </section>
 )}
 
-       {selectedPage === 'Dashboard' && (
+{selectedPage === 'Beneficiaries' && (
+  <section className="beneficiary-section">
+    <div className="beneficiary-header">
+      <div>
+        <h2>My Beneficiaries</h2>
+        <p>Manage your saved demo beneficiaries.</p>
+      </div>
+
+<button
+  type="button"
+  onClick={() => setIsAddingBeneficiary(!isAddingBeneficiary)}
+>
+  {isAddingBeneficiary ? 'Cancel' : '+ Add Beneficiary'}
+</button>
+    </div>
+{isAddingBeneficiary && (
+  <div className="beneficiary-form">
+    <h3>Add New Beneficiary</h3>
+
+    <div className="beneficiary-form-grid">
+      <div className="form-group">
+        <label>Full Name</label>
+        <input
+          type="text"
+          value={newBeneficiaryName}
+          onChange={(e) => setNewBeneficiaryName(e.target.value)}
+          placeholder="Enter full name"
+        />
+      </div>
+
+      <div className="form-group">
+        <label>Email Address</label>
+        <input
+          type="email"
+          value={newBeneficiaryEmail}
+          onChange={(e) => setNewBeneficiaryEmail(e.target.value)}
+          placeholder="Enter email address"
+        />
+      </div>
+
+      <div className="form-group full-width">
+        <label>Account Number</label>
+        <input
+          type="text"
+          value={newBeneficiaryAccount}
+          onChange={(e) => setNewBeneficiaryAccount(e.target.value)}
+          placeholder="Enter demo account number"
+        />
+      </div>
+    </div>
+
+    <div className="beneficiary-form-actions">
+      <button type="button" onClick={() => {
+        if (
+          !newBeneficiaryName.trim() ||
+          !newBeneficiaryEmail.trim() ||
+          !newBeneficiaryAccount.trim()
+        ) {
+          alert('Please fill in all beneficiary details.')
+          return
+        }
+
+        setBeneficiaries([
+          ...beneficiaries,
+          {
+            id: Date.now(),
+            name: newBeneficiaryName.trim(),
+            email: newBeneficiaryEmail.trim(),
+            account: newBeneficiaryAccount.trim(),
+          },
+        ])
+
+        setNewBeneficiaryName('')
+        setNewBeneficiaryEmail('')
+        setNewBeneficiaryAccount('')
+        setIsAddingBeneficiary(false)
+      }}>
+        Save Beneficiary
+      </button>
+
+      <button
+        type="button"
+        className="cancel-beneficiary-btn"
+        onClick={() => setIsAddingBeneficiary(false)}
+      >
+        Cancel
+      </button>
+    </div>
+  </div>
+)}  
+ 
+<div className="beneficiary-grid">
+  {beneficiaries.map((beneficiary) => (
+    <article className="beneficiary-card" key={beneficiary.id}>
+      <div className="beneficiary-avatar">
+        {beneficiary.name.charAt(0).toUpperCase()}
+      </div>
+
+      <h3>{beneficiary.name}</h3>
+      <p>{beneficiary.email}</p>
+      <p>Account ending •••• {beneficiary.account.slice(-4)}</p>
+      <span className="beneficiary-status">Active</span>
+<button
+  type="button"
+  className="delete-beneficiary-btn"
+  onClick={() => {
+    const confirmed = window.confirm(
+      `Are you sure you want to remove ${beneficiary.name}?`
+    )
+
+    if (confirmed) {
+      setBeneficiaries(
+        beneficiaries.filter((item) => item.id !== beneficiary.id)
+      )
+    }
+  }}
+>
+  Delete
+</button>
+    </article>
+  ))}
+</div>
+
+    <p className="beneficiary-demo-notice">
+      Demo only — these are sample beneficiary details.
+    </p>
+  </section>
+)} 
+
+
+{selectedPage === 'Transactions' && (
+  <section className="transactions-page">
+    <div className="transactions-page-header">
+      <div>
+        <h2>Transaction History</h2>
+        <p>View all your recent demo transactions.</p>
+      </div>
+      <span className="transaction-demo-label">Demo Data</span>
+    </div>
+
+    <div className="transactions-summary">
+      <div className="transaction-summary-card">
+        <p>Total Credits</p>
+        <h3 className="credit">₹45,850</h3>
+      </div>
+
+      <div className="transaction-summary-card">
+        <p>Total Debits</p>
+        <h3 className="debit">₹3,749</h3>
+      </div>
+
+      <div className="transaction-summary-card">
+        <p>Total Transactions</p>
+        <h3>4</h3>
+      </div>
+    </div>
+
+    <div className="transactions-table-card">
+      <h3>All Transactions</h3>
+
+<div className="transaction-filters">
+  <input
+    type="text"
+    placeholder="Search transactions..."
+    value={transactionSearch}
+    onChange={(e) => setTransactionSearch(e.target.value)}
+  />
+
+  <select
+    value={transactionTypeFilter}
+    onChange={(e) => setTransactionTypeFilter(e.target.value)}
+  >
+    <option value="All">All Transactions</option>
+    <option value="Credit">Credit</option>
+    <option value="Debit">Debit</option>
+  </select>
+</div>
+
+      <div className="transactions-table-wrapper">
+        <table className="transactions-table">
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Date</th>
+              <th>Type</th>
+              <th>Amount</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredTransactions.map((transaction, index) => (
+              <tr key={index}>
+                <td>{transaction.name}</td>
+                <td>{transaction.date}</td>
+                <td>
+                  <span className={transaction.type === 'Credit' ? 'credit' : 'debit'}>
+                    {transaction.type}
+                  </span>
+                </td>
+                <td className={transaction.type === 'Credit' ? 'credit' : 'debit'}>
+                  {transaction.amount}
+                </td>
+                <td>
+                  <span className="transaction-completed">Completed</span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <p className="beneficiary-demo-notice">
+      Demo only — these transactions are sample records, not actual banking activity.
+    </p>
+  </section>
+)}     
+
+
+ {selectedPage === 'Dashboard' && (
   <section className="balance-section">
       
           <div>
