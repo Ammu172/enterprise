@@ -355,3 +355,149 @@
     font-size: 28px;
   }
 }
+/* Customer Profile Popup */
+
+.profile-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 25, 45, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+  z-index: 1000;
+}
+
+.profile-modal {
+  width: 100%;
+  max-width: 460px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+  animation: profileAppear 0.2s ease-out;
+}
+
+.profile-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.profile-modal-header h2 {
+  margin: 0;
+  color: #192944;
+  font-size: 21px;
+}
+
+.profile-close {
+  border: none;
+  background: #f0f3f8;
+  color: #293d5c;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  font-size: 21px;
+  cursor: pointer;
+}
+
+.profile-details {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.profile-detail {
+  border-bottom: 1px solid #edf0f5;
+  padding-bottom: 13px;
+}
+
+.profile-detail small {
+  display: block;
+  color: #8994a6;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+.profile-detail strong {
+  color: #192944;
+  font-size: 14px;
+}
+
+.profile-avatar {
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #dce8fa;
+  color: #244b78;
+  font-size: 25px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+@keyframes profileAppear {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+/* Edit Profile Form */
+.profile-detail input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #dce3ed;
+  border-radius: 7px;
+  color: #192944;
+  background: #fff;
+  outline: none;
+  font-size: 14px;
+}
+
+.profile-detail input:focus {
+  border-color: #4775bb;
+  box-shadow: 0 0 0 3px rgba(71, 117, 187, 0.12);
+}
+
+.profile-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.profile-actions button,
+.edit-profile-button {
+  border: none;
+  border-radius: 8px;
+  padding: 11px 16px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.profile-actions button:first-child {
+  background: #edf1f7;
+  color: #293d5c;
+}
+
+.profile-actions button:last-child,
+.edit-profile-button {
+  background: #2456a6;
+  color: #fff;
+}
+
+.profile-actions button:hover,
+.edit-profile-button:hover {
+  opacity: 0.9;
+}
+
+.edit-profile-button {
+  width: 100%;
+  margin-top: 8px;
+}

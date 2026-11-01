@@ -4,6 +4,16 @@ import './Dashboard.css'
 
 function Dashboard() {
   const [selectedPage, setSelectedPage] = useState('Dashboard')
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
+
+const [customerName, setCustomerName] = useState('Sample Customer')
+const [customerEmail, setCustomerEmail] = useState('customer@finbank.demo')
+const [customerPhone, setCustomerPhone] = useState('+91 98765 43210')
+
+const [editName, setEditName] = useState(customerName)
+const [editEmail, setEditEmail] = useState(customerEmail)
+const [editPhone, setEditPhone] = useState(customerPhone)
   const transactions = [
     { name: 'Salary Credit', date: '28 Oct 2026', type: 'Credit', amount: '+₹45,000' },
     { name: 'Amazon Purchase', date: '26 Oct 2026', type: 'Debit', amount: '-₹2,499' },
@@ -26,9 +36,19 @@ function Dashboard() {
           <a href="#transfers" className={selectedPage === 'Transfers' ? 'active' : ''} onClick={() => setSelectedPage('Transfers')}> ⇄ Transfers</a>
           <a href="#beneficiaries" className={selectedPage === 'Beneficiaries' ? 'active' : ''} onClick={() => setSelectedPage('Beneficiaries')}> ♧ Beneficiaries</a>
           <a href="#transactions" className={selectedPage === 'Transactions' ? 'active' : ''} onClick={() => setSelectedPage('Transactions')}> ▤ Transactions</a>
-         
-          <a href="#profile" className={selectedPage === 'Profile' ? 'active' : ''} onClick={() => setSelectedPage('Profile')}>⚙ Profile</a>
-        </nav>
+         <a
+  href="#profile"
+  className={selectedPage === 'Profile' ? 'active' : ''}
+  onClick={(event) => {
+    event.preventDefault()
+    setSelectedPage('Profile')
+    setIsProfileOpen(true)
+  }}
+>
+  ⚙ Profile
+</a>
+       
+      </nav>
 
         <button className="logout-button" onClick={() => window.location.reload()}>
           ↪ Sign out
@@ -42,9 +62,13 @@ function Dashboard() {
             <p>Welcome back! Here's your financial overview.</p>
           </div>
           <div className="customer-profile">
-            <div className="avatar">S</div>
+           
+            <div className="avatar">
+  {customerName.charAt(0).toUpperCase()}
+</div>
             <div>
-              <strong>Sample Customer</strong>
+              <strong>{customerName}</strong>
+             
               <small>Personal Banking</small>
             </div>
           </div>
@@ -119,8 +143,136 @@ function Dashboard() {
           FinBank Digital Banking Demo © 2026
         </footer>
       </main>
+
+      {isProfileOpen && (
+        <div
+          className="profile-overlay"
+          onClick={() => setIsProfileOpen(false)}
+        >
+          <div
+            className="profile-modal"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="profile-modal-header">
+              <h2>Customer Profile</h2>
+              <button
+                className="profile-close"
+                onClick={() => setIsProfileOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+<div className="profile-avatar">
+  {customerName.charAt(0).toUpperCase()}
+</div>
+
+{isEditingProfile ? (
+  <div className="profile-details">
+    <div className="profile-detail">
+      <small>Full Name</small>
+      <input
+        value={editName}
+        onChange={(event) => setEditName(event.target.value)}
+        placeholder="Enter your name"
+      />
     </div>
-  )
-}
+
+    <div className="profile-detail">
+      <small>Email Address</small>
+      <input
+        type="email"
+        value={editEmail}
+        onChange={(event) => setEditEmail(event.target.value)}
+        placeholder="Enter your email"
+      />
+    </div>
+
+    <div className="profile-detail">
+      <small>Phone Number</small>
+      <input
+        value={editPhone}
+        onChange={(event) => setEditPhone(event.target.value)}
+        placeholder="Enter your phone number"
+      />
+    </div>
+
+    <div className="profile-actions">
+      <button
+        onClick={() => {
+          setEditName(customerName)
+          setEditEmail(customerEmail)
+          setEditPhone(customerPhone)
+          setIsEditingProfile(false)
+        }}
+      >
+        Cancel
+      </button>
+
+      <button
+        onClick={() => {
+          if (!editName.trim() || !editEmail.trim() || !editPhone.trim()) {
+            alert('Please fill in all fields.')
+            return
+          }
+
+          setCustomerName(editName.trim())
+          setCustomerEmail(editEmail.trim())
+          setCustomerPhone(editPhone.trim())
+          setIsEditingProfile(false)
+        }}
+      >
+        Save Changes
+      </button>
+    </div>
+  </div>
+) : (
+  <div className="profile-details">
+    <div className="profile-detail">
+      <small>Full Name</small>
+      <strong>{customerName}</strong>
+    </div>
+
+    <div className="profile-detail">
+      <small>Email Address</small>
+      <strong>{customerEmail}</strong>
+    </div>
+
+    <div className="profile-detail">
+      <small>Phone Number</small>
+      <strong>{customerPhone}</strong>
+    </div>
+
+    <div className="profile-detail">
+      <small>Account Type</small>
+      <strong>Personal Banking</strong>
+    </div>
+
+    <div className="profile-detail">
+      <small>Customer ID</small>
+      <strong>FB-CUST-1001</strong>
+    </div>
+
+    <button
+      className="edit-profile-button"
+      onClick={() => {
+        setEditName(customerName)
+        setEditEmail(customerEmail)
+        setEditPhone(customerPhone)
+        setIsEditingProfile(true)
+      }}
+    >
+      Edit Profile
+    </button>
+  </div>
+)}
+
+           
+                         </div>
+            </div>
+          )}
+      </div>
+    )
+  }
 
 export default Dashboard
+ 
