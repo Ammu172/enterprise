@@ -501,3 +501,122 @@
   width: 100%;
   margin-top: 8px;
 }
+.account-extra {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.account-extra p {
+  margin: 7px 0;
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.account-extra strong {
+  color: #a8f0c6;
+  font-weight: 600;
+}
+/* Transfers Page */
+
+.transfer-section {
+  margin-top: 30px;
+}
+
+.transfer-section h2 {
+  color: #192944;
+  font-size: 22px;
+  margin-bottom: 8px;
+}
+
+.transfer-section > p {
+  color: #8994a6;
+  font-size: 14px;
+  margin-bottom: 24px;
+}
+
+.transfer-card {
+  background: #ffffff;
+  max-width: 600px;
+  padding: 28px;
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(20, 40, 70, 0.07);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.transfer-card label {
+  color: #293d5c;
+  font-size: 13px;
+  font-weight: 600;
+  margin-top: 8px;
+}
+
+.transfer-card select,
+.transfer-card input {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #dce3ed;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #293d5c;
+  font-size: 14px;
+  outline: none;
+}
+
+.transfer-card select:focus,
+.transfer-card input:focus {
+  border-color: #4775bb;
+  box-shadow: 0 0 0 3px rgba(71, 117, 187, 0.1);
+}
+
+.transfer-card button {
+  margin-top: 18px;
+  padding: 13px;
+  background: #2456a6;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.transfer-card button:hover {
+  background: #193f80;
+}
+/* Transfer Confirmation Summary */
+
+.transfer-confirmation {
+  margin-top: 24px;
+  padding: 24px;
+  max-width: 600px;
+  background: #f4f8ff;
+  border: 1px solid #d8e5f7;
+  border-radius: 12px;
+}
+
+.transfer-confirmation h3 {
+  color: #192944;
+  font-size: 18px;
+  margin-bottom: 18px;
+}
+
+.transfer-confirmation p {
+  color: #40516b;
+  font-size: 14px;
+  margin: 12px 0;
+}
+
+.transfer-confirmation strong {
+  color: #192944;
+}
+
+.transfer-confirmation .demo-notice {
+  padding: 12px;
+  background: #fff4df;
+  color: #946200;
+  border-radius: 7px;
+  font-weight: 600;
+  font-size: 12px;
+}
