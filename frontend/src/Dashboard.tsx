@@ -1,10 +1,12 @@
-import { useState } from 'react'
+
+import { useEffect, useState } from 'react'
 
 import './Dashboard.css'
 
 function Dashboard() {
 const [transactionSearch, setTransactionSearch] = useState('')
 const [transactionTypeFilter, setTransactionTypeFilter] = useState('All')
+const [transactionDateFilter, setTransactionDateFilter] = useState('All')
 const handleReviewTransfer = () => {
   const amount = Number(transferAmount)
 
@@ -35,40 +37,105 @@ const [transferMessage, setTransferMessage] = useState('')
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
 
-const [customerName, setCustomerName] = useState('Sample Customer')
-const [customerEmail, setCustomerEmail] = useState('customer@finbank.demo')
-const [customerPhone, setCustomerPhone] = useState('+91 98765 43210')
 
+const [customerName, setCustomerName] = useState(
+  () => localStorage.getItem('finbank-customer-name') || 'Sample Customer'
+)
+
+const [customerEmail, setCustomerEmail] = useState(
+  () => localStorage.getItem('finbank-customer-email') || 'customer@finbank.demo'
+)
+
+const [customerPhone, setCustomerPhone] = useState(
+  () => localStorage.getItem('finbank-customer-phone') || '+91 98765 43210'
+)
 const [editName, setEditName] = useState(customerName)
 const [editEmail, setEditEmail] = useState(customerEmail)
 const [editPhone, setEditPhone] = useState(customerPhone)
+useEffect(() => {
+  localStorage.setItem('finbank-customer-name', customerName)
+  localStorage.setItem('finbank-customer-email', customerEmail)
+  localStorage.setItem('finbank-customer-phone', customerPhone)
+}, [customerName, customerEmail, customerPhone])
 const [isTransferReviewed, setIsTransferReviewed] = useState(false)
-const [beneficiaries, setBeneficiaries] = useState([
-  {
-    id: 1,
-    name: 'Rahul Sharma',
-    email: 'rahul@example.com',
-    account: '2345',
-  },
-  {
-    id: 2,
-    name: 'Priya Reddy',
-    email: 'priya@example.com',
-    account: '6789',
-  },
-])
+const [beneficiaries, setBeneficiaries] = useState(() => {
+  const savedBeneficiaries = localStorage.getItem('finbank-beneficiaries')
+
+  if (savedBeneficiaries) {
+    try {
+      return JSON.parse(savedBeneficiaries)
+    } catch {
+      localStorage.removeItem('finbank-beneficiaries')
+    }
+  }
+
+  return [
+    {
+      id: 1,
+      name: 'Rahul Sharma',
+      email: 'rahul@example.com',
+      account: '2345',
+    },
+    {
+      id: 2,
+      name: 'Priya Reddy',
+      email: 'priya@example.com',
+      account: '6789',
+    },
+  ]
+})
+useEffect(() => {
+  localStorage.setItem(
+    'finbank-beneficiaries',
+    JSON.stringify(beneficiaries)
+  )
+}, [beneficiaries])
 
 const [isAddingBeneficiary, setIsAddingBeneficiary] = useState(false)
 const [newBeneficiaryName, setNewBeneficiaryName] = useState('')
 const [newBeneficiaryEmail, setNewBeneficiaryEmail] = useState('')
 const [newBeneficiaryAccount, setNewBeneficiaryAccount] = useState('')
-  const transactions = [
-    { name: 'Salary Credit', date: '28 Oct 2026', type: 'Credit', amount: '+₹45,000' },
-    { name: 'Amazon Purchase', date: '26 Oct 2026', type: 'Debit', amount: '-₹2,499' },
-    { name: 'Electricity Bill', date: '24 Oct 2026', type: 'Debit', amount: '-₹1,250' },
-    { name: 'Refund Received', date: '22 Oct 2026', type: 'Credit', amount: '+₹850' },
 
-  ]
+const transactions = [
+  {
+    name: 'Salary Credit',
+    date: '2026-10-28',
+    type: 'Credit',
+    amount: 45000,
+  },
+  {
+    name: 'Amazon Purchase',
+    date: '2026-10-26',
+    type: 'Debit',
+    amount: 2499,
+  },
+  {
+    name: 'Electricity Bill',
+    date: '2026-10-24',
+    type: 'Debit',
+    amount: 1250,
+  },
+  {
+    name: 'Refund Received',
+    date: '2026-10-22',
+    type: 'Credit',
+    amount: 850,
+  },
+]
+
+const formatAmount = (amount: number, type: string) => {
+  const sign = type === 'Credit' ? '+' : '-'
+  return `${sign}₹${amount.toLocaleString('en-IN')}`
+}
+
+const formatDate = (date: string) => {
+  return new Date(`${date}T00:00:00`).toLocaleDateString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}    
+
 const filteredTransactions = transactions.filter((transaction) => {
   const matchesSearch = transaction.name
     .toLowerCase()
@@ -78,9 +145,32 @@ const filteredTransactions = transactions.filter((transaction) => {
     transactionTypeFilter === 'All' ||
     transaction.type === transactionTypeFilter
 
-  return matchesSearch && matchesType
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+
+  const transactionDate = new Date(`${transaction.date}T00:00:00`)
+
+  const daysAgo = Math.floor(
+    (today.getTime() - transactionDate.getTime()) / (1000 * 60 * 60 * 24)
+  )
+
+  const matchesDate =
+    transactionDateFilter === 'All' ||
+    (transactionDateFilter === '7' && daysAgo >= 0 && daysAgo <= 6) ||
+    (transactionDateFilter === '30' && daysAgo >= 0 && daysAgo <= 29)
+
+  return matchesSearch && matchesType && matchesDate
 })
 
+const totalCredits = filteredTransactions
+  .filter((transaction) => transaction.type === 'Credit')
+  .reduce((total, transaction) => total + transaction.amount, 0)
+
+const totalDebits = filteredTransactions
+  .filter((transaction) => transaction.type === 'Debit')
+  .reduce((total, transaction) => total + transaction.amount, 0)
+
+const totalTransactions = filteredTransactions.length
   return (
     <div className="dashboard">
       <aside className="sidebar">
@@ -362,26 +452,29 @@ const filteredTransactions = transactions.filter((transaction) => {
       <span className="transaction-demo-label">Demo Data</span>
     </div>
 
-    <div className="transactions-summary">
-      <div className="transaction-summary-card">
-        <p>Total Credits</p>
-        <h3 className="credit">₹45,850</h3>
-      </div>
+<div className="transactions-summary">
+  <div className="transaction-summary-card">
+    <p>Total Credits</p>
+    <h3 className="credit">
+      ₹{totalCredits.toLocaleString('en-IN')}
+    </h3>
+  </div>
 
-      <div className="transaction-summary-card">
-        <p>Total Debits</p>
-        <h3 className="debit">₹3,749</h3>
-      </div>
+  <div className="transaction-summary-card">
+    <p>Total Debits</p>
+    <h3 className="debit">
+      ₹{totalDebits.toLocaleString('en-IN')}
+    </h3>
+  </div>
 
-      <div className="transaction-summary-card">
-        <p>Total Transactions</p>
-        <h3>4</h3>
-      </div>
-    </div>
+  <div className="transaction-summary-card">
+    <p>Total Transactions</p>
+    <h3>{totalTransactions}</h3>
+  </div>
+</div>
 
     <div className="transactions-table-card">
       <h3>All Transactions</h3>
-
 <div className="transaction-filters">
   <input
     type="text"
@@ -397,6 +490,15 @@ const filteredTransactions = transactions.filter((transaction) => {
     <option value="All">All Transactions</option>
     <option value="Credit">Credit</option>
     <option value="Debit">Debit</option>
+  </select>
+
+  <select
+    value={transactionDateFilter}
+    onChange={(e) => setTransactionDateFilter(e.target.value)}
+  >
+    <option value="All">All Dates</option>
+    <option value="7">Last 7 Days</option>
+    <option value="30">Last 30 Days</option>
   </select>
 </div>
 
@@ -416,14 +518,16 @@ const filteredTransactions = transactions.filter((transaction) => {
             {filteredTransactions.map((transaction, index) => (
               <tr key={index}>
                 <td>{transaction.name}</td>
-                <td>{transaction.date}</td>
+              
+                <td>{formatDate(transaction.date)}</td>
                 <td>
                   <span className={transaction.type === 'Credit' ? 'credit' : 'debit'}>
                     {transaction.type}
                   </span>
                 </td>
                 <td className={transaction.type === 'Credit' ? 'credit' : 'debit'}>
-                  {transaction.amount}
+                 
+                  {formatAmount(transaction.amount, transaction.type)}
                 </td>
                 <td>
                   <span className="transaction-completed">Completed</span>
@@ -516,10 +620,12 @@ const filteredTransactions = transactions.filter((transaction) => {
                 </div>
                 <div className="transaction-info">
                   <strong>{transaction.name}</strong>
-                  <small>{transaction.date}</small>
+                  <small>{formatDate(transaction.date)}</small>
+                
                 </div>
                 <strong className={transaction.type === 'Credit' ? 'credit' : 'debit'}>
-                  {transaction.amount}
+                 
+                 {formatAmount(transaction.amount, transaction.type)}
                 </strong>
               </div>
             ))}
