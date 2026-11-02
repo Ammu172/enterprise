@@ -1,5 +1,5 @@
 package com.finbank.customer;
-
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
@@ -29,7 +29,7 @@ public class CustomerController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Customer createCustomer(@RequestBody Customer customer) {
+    public Customer createCustomer(@Valid @RequestBody Customer customer) {
         return customerService.createCustomer(customer);
     }
 
