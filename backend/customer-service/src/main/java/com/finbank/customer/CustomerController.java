@@ -24,7 +24,9 @@ public class CustomerController {
     public Customer getCustomerById(@PathVariable Long id) {
         return customerService.getCustomerById(id)
                 .orElseThrow(() ->
-                    new RuntimeException("Customer not found"));
+    new org.springframework.web.server.ResponseStatusException(
+        HttpStatus.NOT_FOUND, "Customer not found"));
+               
     }
 
     @PostMapping
@@ -32,6 +34,15 @@ public class CustomerController {
     public Customer createCustomer(@Valid @RequestBody Customer customer) {
         return customerService.createCustomer(customer);
     }
+
+@PutMapping("/{id}")
+public Customer updateCustomer(
+        @PathVariable Long id,
+        @Valid @RequestBody Customer customer) {
+
+    return customerService.updateCustomer(id, customer);
+}
+
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)

@@ -24,8 +24,30 @@ public class CustomerService {
     public Customer createCustomer(Customer customer) {
         return customerRepository.save(customer);
     }
+   public Customer updateCustomer(Long id, Customer updatedCustomer) {
+
+    Customer existingCustomer = customerRepository.findById(id)
+            .orElseThrow(() ->
+                    new org.springframework.web.server.ResponseStatusException(
+                            org.springframework.http.HttpStatus.NOT_FOUND,
+                            "Customer not found"));
+
+    existingCustomer.setFirstName(updatedCustomer.getFirstName());
+    existingCustomer.setLastName(updatedCustomer.getLastName());
+    existingCustomer.setEmail(updatedCustomer.getEmail());
+    existingCustomer.setPhone(updatedCustomer.getPhone());
+
+    return customerRepository.save(existingCustomer);
+}
 
     public void deleteCustomer(Long id) {
-        customerRepository.deleteById(id);
+    if (!customerRepository.existsById(id)) {
+        throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.NOT_FOUND,
+                "Customer not found");
     }
+
+    customerRepository.deleteById(id);
+}
+
 }
