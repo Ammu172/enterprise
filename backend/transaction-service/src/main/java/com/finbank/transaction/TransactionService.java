@@ -54,7 +54,7 @@ public class TransactionService {
                     HttpStatus.NOT_FOUND, "Source account not found");
         }
 
-        transaction.setStatus("SUCCESS");
+        transaction.setStatus("RECORDED");
 
         return transactionRepository.save(transaction);
     }
