@@ -1,6 +1,6 @@
 
 import { useEffect, useState } from 'react'
-import { getCustomerById } from './services/api'
+import { getAccountsByCustomerId, getCustomerById } from './services/api'
 import './Dashboard.css'
 
 function Dashboard() {
@@ -676,6 +676,7 @@ const totalTransactions = filteredTransactions.length
 
       {isProfileOpen && (
         <div
+
           className="profile-overlay"
           onClick={() => setIsProfileOpen(false)}
         >
