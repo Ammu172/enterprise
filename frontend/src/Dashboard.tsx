@@ -1,12 +1,44 @@
 
 import { useEffect, useState } from 'react'
-
+import { getCustomerById } from './services/api'
 import './Dashboard.css'
 
 function Dashboard() {
 const [transactionSearch, setTransactionSearch] = useState('')
 const [transactionTypeFilter, setTransactionTypeFilter] = useState('All')
 const [transactionDateFilter, setTransactionDateFilter] = useState('All')
+const [customerLoading, setCustomerLoading] = useState(true)
+const [customerError, setCustomerError] = useState('')
+
+useEffect(() => {
+  async function loadCustomer() {
+    try {
+      const customer = await getCustomerById(3)
+
+      const fullName = `${customer.firstName} ${customer.lastName}`
+
+      setCustomerName(fullName)
+      setCustomerEmail(customer.email)
+      setCustomerPhone(customer.phone)
+
+      setEditName(fullName)
+      setEditEmail(customer.email)
+      setEditPhone(customer.phone)
+
+      setCustomerError('')
+    } catch (error) {
+      setCustomerError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load customer details'
+      )
+    } finally {
+      setCustomerLoading(false)
+    }
+  }
+
+  loadCustomer()
+}, [])
 const handleReviewTransfer = () => {
   const amount = Number(transferAmount)
 
@@ -173,6 +205,11 @@ const totalDebits = filteredTransactions
 const totalTransactions = filteredTransactions.length
   return (
     <div className="dashboard">
+{customerLoading && <p>Loading customer details...</p>}
+
+{customerError && (
+  <p style={{ color: 'red' }}>{customerError}</p>
+)}
       <aside className="sidebar">
         <div className="dashboard-brand">
           <div className="brand-icon">F</div>
