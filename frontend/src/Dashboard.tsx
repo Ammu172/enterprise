@@ -9,6 +9,13 @@ const [transactionTypeFilter, setTransactionTypeFilter] = useState('All')
 const [transactionDateFilter, setTransactionDateFilter] = useState('All')
 const [customerLoading, setCustomerLoading] = useState(true)
 const [customerError, setCustomerError] = useState('')
+const [accounts, setAccounts] = useState<any[]>([])
+const [accountLoading, setAccountLoading] = useState(true)
+const [accountError, setAccountError] = useState('')
+const totalAccountBalance = accounts.reduce(
+  (total, account) => total + Number(account.balance),
+  0
+)
 
 useEffect(() => {
   async function loadCustomer() {
@@ -38,6 +45,25 @@ useEffect(() => {
   }
 
   loadCustomer()
+}, [])
+useEffect(() => {
+  async function loadAccounts() {
+    try {
+      const data = await getAccountsByCustomerId(3)
+      setAccounts(data)
+      setAccountError('')
+    } catch (error) {
+      setAccountError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load accounts'
+      )
+    } finally {
+      setAccountLoading(false)
+    }
+  }
+
+  loadAccounts()
 }, [])
 const handleReviewTransfer = () => {
   const amount = Number(transferAmount)
@@ -116,6 +142,7 @@ const [beneficiaries, setBeneficiaries] = useState(() => {
     },
   ]
 })
+
 useEffect(() => {
   localStorage.setItem(
     'finbank-beneficiaries',
@@ -123,6 +150,26 @@ useEffect(() => {
   )
 }, [beneficiaries])
 
+
+useEffect(() => {
+  async function loadAccounts() {
+    try {
+      const data = await getAccountsByCustomerId(3)
+      setAccounts(data)
+      setAccountError('')
+    } catch (error) {
+      setAccountError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load accounts'
+      )
+    } finally {
+      setAccountLoading(false)
+    }
+  }
+
+  loadAccounts()
+}, [])
 const [isAddingBeneficiary, setIsAddingBeneficiary] = useState(false)
 const [newBeneficiaryName, setNewBeneficiaryName] = useState('')
 const [newBeneficiaryEmail, setNewBeneficiaryEmail] = useState('')
@@ -277,6 +324,7 @@ const totalTransactions = filteredTransactions.length
           setFromAccount(e.target.value)
           setTransferMessage('')
         }}
+
       >
         <option value="Savings Account">Savings Account •••• 4521</option>
         <option value="Current Account">Current Account •••• 8910</option>
@@ -588,41 +636,65 @@ const totalTransactions = filteredTransactions.length
       
           <div>
             <p className="section-label">TOTAL ACCOUNT BALANCE</p>
-            <h2>₹2,45,850.00</h2>
+            <h2>  ₹{totalAccountBalance.toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}</h2>
             <p className="balance-note">Across your FinBank accounts</p>
           </div>
           <div className="balance-icon">₹</div>
         </section>
 )}
-       {(selectedPage === 'Dashboard' || selectedPage === 'My Accounts') && (
+
+{(selectedPage === 'Dashboard' || selectedPage === 'My Accounts') && (
   <section id="accounts" className="account-section">
-          <h2>My Accounts</h2>
-          <div className="account-grid">
-          <article className="account-card savings">
-  <span>SAVINGS ACCOUNT</span>
-  <h3>₹1,85,850.00</h3>
-  <p>Account ending •••• 4521</p>
-  <div className="account-extra">
-    <p>Account Type: Savings</p>
-    <p>Account Status: <strong>Active</strong></p>
-    <p>Currency: INR (₹)</p>
-  </div>
-</article>
-         
+    <h2>My Accounts</h2>
 
-<article className="account-card current">
-  <span>CURRENT ACCOUNT</span>
-  <h3>₹60,000.00</h3>
-  <p>Account ending •••• 8910</p>
-  <div className="account-extra">
-    <p>Account Type: Current</p>
-    <p>Account Status: <strong>Active</strong></p>
-    <p>Currency: INR (₹)</p>
-  </div>
-</article>
-</div>
-          </section>
+    {accountLoading && <p>Loading accounts...</p>}
 
+    {accountError && <p>{accountError}</p>}
+
+    {!accountLoading && !accountError && accounts.length === 0 && (
+      <p>No accounts found.</p>
+    )}
+
+    {!accountLoading && !accountError && accounts.length > 0 && (
+      <div className="account-grid">
+        {accounts.map((account) => (
+          <article
+            key={account.id}
+            className={`account-card ${
+              String(account.accountType).toLowerCase() === 'savings'
+                ? 'savings'
+                : 'current'
+            }`}
+          >
+            <span>{account.accountType} ACCOUNT</span>
+
+            <h3>
+              ₹
+              {Number(account.balance).toLocaleString('en-IN', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })}
+            </h3>
+
+            <p>
+              Account ending •••• {String(account.accountNumber).slice(-4)}
+            </p>
+
+            <div className="account-extra">
+              <p>Account Type: {account.accountType}</p>
+              <p>
+                Account Status: <strong>{account.status}</strong>
+              </p>
+              <p>Currency: INR (₹)</p>
+            </div>
+          </article>
+        ))}
+      </div>
+    )}
+  </section>
 )}
         {selectedPage === 'Dashboard' && (
 
