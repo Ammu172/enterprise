@@ -18,12 +18,16 @@ public class AccountService {
     private final RestClient restClient;
     public AccountService(
         AccountRepository accountRepository,
-        @Value("${customer.service.url}") String customerServiceUrl) {
+
+@Value("${customer.service.url}") String customerServiceUrl,
+@Value("${internal.service.token}") String internalServiceToken) {
 
     this.accountRepository = accountRepository;
-    this.restClient = RestClient.builder()
-            .baseUrl(customerServiceUrl)
-            .build();
+this.restClient = RestClient.builder()
+        .baseUrl(customerServiceUrl)
+        .defaultHeader("X-Service-Token", internalServiceToken)
+        .build();
+
 }
    public List<Account> getAllAccounts() {
         return accountRepository.findAll();
