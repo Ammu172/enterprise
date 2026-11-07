@@ -1,6 +1,11 @@
-
+import {
+  getAccountsByCustomerId,
+  getCustomerById,
+  getTransactionsByAccountId,
+  createTransaction,
+} from './services/api'
 import { useEffect, useState } from 'react'
-import { getAccountsByCustomerId, getCustomerById } from './services/api'
+
 import './Dashboard.css'
 
 function Dashboard() {
@@ -12,6 +17,9 @@ const [customerError, setCustomerError] = useState('')
 const [accounts, setAccounts] = useState<any[]>([])
 const [accountLoading, setAccountLoading] = useState(true)
 const [accountError, setAccountError] = useState('')
+const [transactions, setTransactions] = useState<any[]>([])
+const [transactionLoading, setTransactionLoading] = useState(true)
+const [transactionError, setTransactionError] = useState('')
 const totalAccountBalance = accounts.reduce(
   (total, account) => total + Number(account.balance),
   0
@@ -65,35 +73,230 @@ useEffect(() => {
 
   loadAccounts()
 }, [])
+useEffect(() => {
+  if (accountLoading) return
+
+  async function loadTransactions() {
+    try {
+      if (accounts.length === 0) {
+        setTransactions([])
+        return
+      }
+
+      const results = await Promise.all(
+        accounts.map((account) =>
+          getTransactionsByAccountId(account.id)
+        )
+      )
+
+      setTransactions(results.flat())
+      setTransactionError('')
+    } catch (error) {
+      setTransactionError(
+        error instanceof Error
+          ? error.message
+          : 'Unable to load transactions'
+      )
+    } finally {
+      setTransactionLoading(false)
+    }
+  }
+
+  loadTransactions()
+}, [accounts, accountLoading])
+
 const handleReviewTransfer = () => {
   const amount = Number(transferAmount)
 
-  if (!transferAmount || amount <= 0) {
+  if (!transferAmount || !Number.isFinite(amount) || amount <= 0) {
     setTransferMessage('Please enter a valid amount greater than zero.')
     setIsTransferReviewed(false)
     return
   }
+const sourceAccount = accounts.find(
+  (account) => String(account.id) === fromAccount
+)
 
-  if (fromAccount === toAccount) {
+const destinationAccount = accounts.find(
+  (account) => String(account.id) === toAccount
+)
+  if (!sourceAccount || !destinationAccount) {
+    setTransferMessage('Unable to identify the selected accounts.')
+    setIsTransferReviewed(false)
+    return
+  }
+
+  if (sourceAccount.id === destinationAccount.id) {
     setTransferMessage('From and To accounts cannot be the same.')
     setIsTransferReviewed(false)
     return
   }
 
+  if (Number(sourceAccount.balance) < amount) {
+    setTransferMessage('Insufficient account balance.')
+    setIsTransferReviewed(false)
+    return
+  }
+
   setTransferMessage(
-    `Transfer review successful: ₹${amount.toLocaleString('en-IN')} from ${fromAccount} to ${toAccount}. Demo only — no money transferred.`
+    `Transfer review successful: ₹${amount.toLocaleString('en-IN')}. Please confirm below.`
   )
 
   setIsTransferReviewed(true)
 }
-  const [selectedPage, setSelectedPage] = useState('Dashboard')
-  const [fromAccount, setFromAccount] = useState('Savings Account')
-const [toAccount, setToAccount] = useState('Current Account')
+const handleConfirmTransfer = async () => {
+  if (isTransferSubmitting) return
+
+  const amount = Number(transferAmount)
+
+  const sourceAccount = accounts.find(
+    (account) => String(account.id) === fromAccount
+  )
+
+  const destinationAccount = accounts.find(
+    (account) => String(account.id) === toAccount
+  )
+
+  if (!sourceAccount || !destinationAccount || sourceAccount.id === destinationAccount.id) {
+    setTransferMessage('Please select two different valid accounts.')
+    return
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    setTransferMessage('Please enter a valid transfer amount.')
+    return
+  }
+
+  if (Number(sourceAccount.balance) < amount) {
+    setTransferMessage('Insufficient account balance.')
+    return
+  }
+
+  setIsTransferSubmitting(true)
+
+  try {
+    await createTransaction({
+      sourceAccountId: sourceAccount.id,
+      destinationAccountId: destinationAccount.id,
+      transactionType: 'TRANSFER',
+      amount,
+      description: transferDescription.trim() || 'FinBank account transfer',
+    })
+
+    setTransferMessage('Transfer completed successfully!')
+    setIsTransferReviewed(false)
+    setTransferAmount('')
+    setTransferDescription('')
+
+    try {
+      const updatedAccounts = await getAccountsByCustomerId(3)
+      setAccounts(updatedAccounts)
+
+      const results = await Promise.all(
+        updatedAccounts.map((account) =>
+          getTransactionsByAccountId(account.id)
+        )
+      )
+
+      setTransactions(results.flat())
+      setTransactionError('')
+    } catch {
+      setTransferMessage(
+        'Transfer completed, but refreshing the account display failed. Please reload the page.'
+      )
+    }
+  } catch (error) {
+    setTransferMessage(
+      error instanceof Error ? error.message : 'Transfer failed.'
+    )
+  } finally {
+    setIsTransferSubmitting(false)
+  }
+}
+const handleMoneyTransaction = async () => {
+  if (isMoneySubmitting) return
+
+  const amount = Number(moneyAmount)
+
+  const selectedAccount = accounts.find(
+    (account) => String(account.id) === moneyAccount
+  )
+
+  if (!selectedAccount) {
+    setMoneyMessage('Please select a valid account.')
+    return
+  }
+
+  if (!Number.isFinite(amount) || amount <= 0) {
+    setMoneyMessage('Please enter a valid amount greater than zero.')
+    return
+  }
+
+  if (
+    moneyAction === 'WITHDRAWAL' &&
+    Number(selectedAccount.balance) < amount
+  ) {
+    setMoneyMessage('Insufficient account balance.')
+    return
+  }
+
+  setIsMoneySubmitting(true)
+
+  try {
+    await createTransaction({
+      sourceAccountId: selectedAccount.id,
+      transactionType: moneyAction,
+      amount,
+      description:
+        moneyDescription.trim() ||
+        (moneyAction === 'DEPOSIT' ? 'Account deposit' : 'Account withdrawal'),
+    })
+
+    setMoneyMessage(
+      `${moneyAction === 'DEPOSIT' ? 'Deposit' : 'Withdrawal'} completed successfully!`
+    )
+
+    setMoneyAmount('')
+    setMoneyDescription('')
+
+    const updatedAccounts = await getAccountsByCustomerId(3)
+    setAccounts(updatedAccounts)
+
+    const results = await Promise.all(
+      updatedAccounts.map((account) =>
+        getTransactionsByAccountId(account.id)
+      )
+    )
+
+    setTransactions(results.flat())
+    setTransactionError('')
+  } catch (error) {
+    setMoneyMessage(
+      error instanceof Error ? error.message : 'Transaction failed.'
+    )
+  } finally {
+    setIsMoneySubmitting(false)
+  }
+}
+
+const [selectedPage, setSelectedPage] = useState('Dashboard')
+
+const [fromAccount, setFromAccount] = useState('1')
+const [toAccount, setToAccount] = useState('3')
+
 const [transferAmount, setTransferAmount] = useState('')
 const [transferDescription, setTransferDescription] = useState('')
 const [transferMessage, setTransferMessage] = useState('')
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [isEditingProfile, setIsEditingProfile] = useState(false)
+const [isTransferSubmitting, setIsTransferSubmitting] = useState(false)
+const [moneyAction, setMoneyAction] = useState<'DEPOSIT' | 'WITHDRAWAL'>('DEPOSIT')
+const [moneyAccount, setMoneyAccount] = useState('1')
+const [moneyAmount, setMoneyAmount] = useState('')
+const [moneyDescription, setMoneyDescription] = useState('')
+const [moneyMessage, setMoneyMessage] = useState('')
+const [isMoneySubmitting, setIsMoneySubmitting] = useState(false)
+
 
 
 const [customerName, setCustomerName] = useState(
@@ -175,32 +378,6 @@ const [newBeneficiaryName, setNewBeneficiaryName] = useState('')
 const [newBeneficiaryEmail, setNewBeneficiaryEmail] = useState('')
 const [newBeneficiaryAccount, setNewBeneficiaryAccount] = useState('')
 
-const transactions = [
-  {
-    name: 'Salary Credit',
-    date: '2026-10-28',
-    type: 'Credit',
-    amount: 45000,
-  },
-  {
-    name: 'Amazon Purchase',
-    date: '2026-10-26',
-    type: 'Debit',
-    amount: 2499,
-  },
-  {
-    name: 'Electricity Bill',
-    date: '2026-10-24',
-    type: 'Debit',
-    amount: 1250,
-  },
-  {
-    name: 'Refund Received',
-    date: '2026-10-22',
-    type: 'Credit',
-    amount: 850,
-  },
-]
 
 const formatAmount = (amount: number, type: string) => {
   const sign = type === 'Credit' ? '+' : '-'
@@ -215,19 +392,29 @@ const formatDate = (date: string) => {
   })
 }    
 
+
+
+const getTransactionType = (transaction: any) =>
+  String(transaction.transactionType || '').toLowerCase()
+
+const getTransactionDescription = (transaction: any) =>
+  transaction.description || `Transaction ${transaction.id}`
+
 const filteredTransactions = transactions.filter((transaction) => {
-  const matchesSearch = transaction.name
+  const matchesSearch = getTransactionDescription(transaction)
     .toLowerCase()
     .includes(transactionSearch.toLowerCase())
 
   const matchesType =
     transactionTypeFilter === 'All' ||
-    transaction.type === transactionTypeFilter
+    getTransactionType(transaction) === transactionTypeFilter.toLowerCase()
+
+  const transactionDate = new Date(
+    `${String(transaction.createdAt).slice(0, 10)}T00:00:00`
+  )
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-
-  const transactionDate = new Date(`${transaction.date}T00:00:00`)
 
   const daysAgo = Math.floor(
     (today.getTime() - transactionDate.getTime()) / (1000 * 60 * 60 * 24)
@@ -240,15 +427,17 @@ const filteredTransactions = transactions.filter((transaction) => {
 
   return matchesSearch && matchesType && matchesDate
 })
-
 const totalCredits = filteredTransactions
-  .filter((transaction) => transaction.type === 'Credit')
-  .reduce((total, transaction) => total + transaction.amount, 0)
+  .filter((transaction) =>
+    ['credit', 'deposit'].includes(getTransactionType(transaction))
+  )
+  .reduce((total, transaction) => total + Number(transaction.amount), 0)
 
 const totalDebits = filteredTransactions
-  .filter((transaction) => transaction.type === 'Debit')
-  .reduce((total, transaction) => total + transaction.amount, 0)
-
+  .filter((transaction) =>
+    ['debit', 'withdrawal', 'transfer'].includes(getTransactionType(transaction))
+  )
+  .reduce((total, transaction) => total + Number(transaction.amount), 0)
 const totalTransactions = filteredTransactions.length
   return (
     <div className="dashboard">
@@ -267,6 +456,7 @@ const totalTransactions = filteredTransactions.length
         <nav className="dashboard-nav">
           <a href="#dashboard" className={selectedPage === 'Dashboard' ? 'active' : ''} onClick={() => setSelectedPage('Dashboard')}> ▦ Dashboard</a>
           <a href="#accounts" className={selectedPage === 'My Accounts' ? 'active' : ''} onClick={() => setSelectedPage('My Accounts')}>▣ My Accounts</a>
+         <a href="#deposit-withdrawal" className={selectedPage === 'Deposit & Withdrawal' ? 'active' : ''} onClick={() => setSelectedPage('Deposit & Withdrawal')}> ⇅ Deposit & Withdrawal</a>
           <a href="#transfers" className={selectedPage === 'Transfers' ? 'active' : ''} onClick={() => setSelectedPage('Transfers')}> ⇄ Transfers</a>
           <a href="#beneficiaries" className={selectedPage === 'Beneficiaries' ? 'active' : ''} onClick={() => setSelectedPage('Beneficiaries')}> ♧ Beneficiaries</a>
           <a href="#transactions" className={selectedPage === 'Transactions' ? 'active' : ''} onClick={() => setSelectedPage('Transactions')}> ▤ Transactions</a>
@@ -318,30 +508,36 @@ const totalTransactions = filteredTransactions.length
     <p>Move funds between your demo accounts.</p>
     <div className="transfer-card">
       <label>From Account</label>
-      <select
-        value={fromAccount}
-        onChange={(e) => {
-          setFromAccount(e.target.value)
-          setTransferMessage('')
-        }}
 
-      >
-        <option value="Savings Account">Savings Account •••• 4521</option>
-        <option value="Current Account">Current Account •••• 8910</option>
-      </select>
-
+<select
+  value={fromAccount}
+  onChange={(e) => {
+    setFromAccount(e.target.value)
+    setTransferMessage('')
+    setIsTransferReviewed(false)
+  }}
+>
+  {accounts.map((account) => (
+    <option key={account.id} value={String(account.id)}>
+      {account.accountNumber} - {account.accountType}
+    </option>
+  ))}
+</select>
       <label>To Account</label>
-      <select
-        value={toAccount}
-        onChange={(e) => {
-          setToAccount(e.target.value)
-          setTransferMessage('')
-        }}
-      >
-        <option value="Current Account">Current Account •••• 8910</option>
-        <option value="Savings Account">Savings Account •••• 4521</option>
-      </select>
-
+<select
+  value={toAccount}
+  onChange={(e) => {
+    setToAccount(e.target.value)
+    setTransferMessage('')
+    setIsTransferReviewed(false)
+  }}
+>
+  {accounts.map((account) => (
+    <option key={account.id} value={String(account.id)}>
+      {account.accountNumber} - {account.accountType}
+    </option>
+  ))}
+</select>
       <label>Amount (₹)</label>
       <input
         type="number"
@@ -387,13 +583,88 @@ const totalTransactions = filteredTransactions.length
     </p>
     <p><strong>Reference:</strong> FB-DEMO-REVIEW</p>
 
-    <p className="demo-notice">
-      Demo only — no money has been transferred.
-    </p>
+    <button
+  type="button"
+  onClick={handleConfirmTransfer}
+  disabled={isTransferSubmitting}
+>
+  {isTransferSubmitting ? 'Processing...' : 'Confirm Transfer'}
+</button>
  </div>
   )}
       </div>
 
+  </section>
+)}
+
+{selectedPage === 'Deposit & Withdrawal' && (
+  <section className="transfer-section">
+    <h2>Deposit & Withdrawal</h2>
+    <p>Manage transactions in your demo accounts.</p>
+
+    <div className="transfer-card">
+      <label>Transaction Type</label>
+      <select
+        value={moneyAction}
+        onChange={(e) => {
+          setMoneyAction(e.target.value as 'DEPOSIT' | 'WITHDRAWAL')
+          setMoneyMessage('')
+        }}
+      >
+        <option value="DEPOSIT">Deposit</option>
+        <option value="WITHDRAWAL">Withdrawal</option>
+      </select>
+
+      <label>Select Account</label>
+      <select
+        value={moneyAccount}
+        onChange={(e) => {
+          setMoneyAccount(e.target.value)
+          setMoneyMessage('')
+        }}
+      >
+        {accounts.map((account) => (
+          <option key={account.id} value={String(account.id)}>
+            {account.accountNumber} - {account.accountType}
+          </option>
+        ))}
+      </select>
+
+      <label>Amount (₹)</label>
+      <input
+        type="number"
+        min="0.01"
+        value={moneyAmount}
+        onChange={(e) => {
+          setMoneyAmount(e.target.value)
+          setMoneyMessage('')
+        }}
+        placeholder="Enter amount"
+      />
+
+      <label>Description</label>
+      <input
+        type="text"
+        value={moneyDescription}
+        onChange={(e) => {
+          setMoneyDescription(e.target.value)
+          setMoneyMessage('')
+        }}
+        placeholder="Enter description"
+      />
+
+      <button
+        type="button"
+        onClick={handleMoneyTransaction}
+        disabled={isMoneySubmitting}
+      >
+        {isMoneySubmitting ? 'Processing...' : `Confirm ${moneyAction === 'DEPOSIT' ? 'Deposit' : 'Withdrawal'}`}
+      </button>
+
+      {moneyMessage && (
+        <p className="transfer-message">{moneyMessage}</p>
+      )}
+    </div>
   </section>
 )}
 
@@ -600,25 +871,48 @@ const totalTransactions = filteredTransactions.length
           </thead>
 
           <tbody>
-            {filteredTransactions.map((transaction, index) => (
-              <tr key={index}>
-                <td>{transaction.name}</td>
-              
-                <td>{formatDate(transaction.date)}</td>
-                <td>
-                  <span className={transaction.type === 'Credit' ? 'credit' : 'debit'}>
-                    {transaction.type}
-                  </span>
-                </td>
-                <td className={transaction.type === 'Credit' ? 'credit' : 'debit'}>
-                 
-                  {formatAmount(transaction.amount, transaction.type)}
-                </td>
-                <td>
-                  <span className="transaction-completed">Completed</span>
-                </td>
-              </tr>
-            ))}
+
+{filteredTransactions.map((transaction) => (
+  <tr key={transaction.id}>
+    <td>{getTransactionDescription(transaction)}</td>
+
+    <td>{formatDate(String(transaction.createdAt).slice(0, 10))}</td>
+
+    <td>
+      <span
+        className={
+          getTransactionType(transaction) === 'credit' ? 'credit' : 'debit'
+        }
+      >
+        {getTransactionType(transaction) === 'withdrawal'
+  ? 'Withdrawal'
+  : getTransactionType(transaction) === 'credit'
+    ? 'Credit'
+    : getTransactionType(transaction) === 'transfer'
+      ? 'Transfer'
+      : 'Debit'}
+      </span>
+    </td>
+
+    <td
+      className={
+        getTransactionType(transaction) === 'credit' ? 'credit' : 'debit'
+      }
+    >
+      {formatAmount(
+        Number(transaction.amount),
+        getTransactionType(transaction) === 'credit' ? 'Credit' : 'Debit'
+      )}
+    </td>
+
+    <td>
+      <span className="transaction-completed">
+        {transaction.status}
+      </span>
+    </td>
+  </tr>
+))}
+
           </tbody>
         </table>
       </div>
@@ -718,27 +1012,45 @@ const totalTransactions = filteredTransactions.length
        
           <div className="section-heading">
             <h2>Recent Transactions</h2>
-            <span>Sample data</span>
+           
+<span>Live Transactions</span>
           </div>
+{transactionLoading && <p>Loading transactions...</p>}
 
-          <div className="transaction-list">
-            {transactions.map((transaction, index) => (
-              <div className="transaction-row" key={index}>
-                <div className="transaction-icon">
-                  {transaction.type === 'Credit' ? '↓' : '↑'}
-                </div>
-                <div className="transaction-info">
-                  <strong>{transaction.name}</strong>
-                  <small>{formatDate(transaction.date)}</small>
-                
-                </div>
-                <strong className={transaction.type === 'Credit' ? 'credit' : 'debit'}>
-                 
-                 {formatAmount(transaction.amount, transaction.type)}
-                </strong>
-              </div>
-            ))}
-          </div>
+{transactionError && (
+  <p style={{ color: 'red' }}>{transactionError}</p>
+)}
+
+                    <div className="transaction-list">
+            {transactions.slice(0, 5).map((transaction) => (
+  <div className="transaction-row" key={transaction.id}>
+    <div className="transaction-icon">
+      {getTransactionType(transaction) === 'credit' ? '↓' : '↑'}
+    </div>
+
+    <div className="transaction-info">
+      <strong>{getTransactionDescription(transaction)}</strong>
+      <small>
+        {formatDate(String(transaction.createdAt).slice(0, 10))}
+      </small>
+    </div>
+
+    <strong
+      className={
+        getTransactionType(transaction) === 'credit' ? 'credit' : 'debit'
+      }
+    >
+      {formatAmount(
+        Number(transaction.amount),
+        
+       ['credit', 'deposit'].includes(getTransactionType(transaction))
+  ? 'Credit'
+  : 'Debit'
+      )}
+    </strong>
+  </div>
+))}
+ </div>
         </section>
 )}
         <footer className="dashboard-footer">

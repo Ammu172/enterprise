@@ -1,6 +1,7 @@
 
 package com.finbank.account;
-
+import java.math.BigDecimal;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.client.RestClient;
@@ -83,4 +84,28 @@ public class AccountService {
 
         accountRepository.deleteById(id);
     }
+
+@Transactional
+public Account adjustBalance(Long id, BigDecimal adjustment) {
+
+    if (adjustment == null || adjustment.compareTo(BigDecimal.ZERO) == 0) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Adjustment must not be zero");
+    }
+
+    Account account = accountRepository.findByIdForUpdate(id)
+            .orElseThrow(() -> new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Account not found"));
+
+    BigDecimal newBalance = account.getBalance().add(adjustment);
+
+    if (newBalance.compareTo(BigDecimal.ZERO) < 0) {
+        throw new ResponseStatusException(
+                HttpStatus.BAD_REQUEST, "Insufficient account balance");
+    }
+
+    account.setBalance(newBalance);
+
+    return accountRepository.save(account);
+}
 }

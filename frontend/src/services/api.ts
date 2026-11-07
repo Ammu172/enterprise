@@ -32,3 +32,36 @@ export async function getAccountsByCustomerId(customerId: number) {
 
   return response.json()
 }
+export async function getTransactionsByAccountId(accountId: number) {
+  const response = await fetch(
+    `${API_BASE_URL}/transactions/account/${accountId}`
+  )
+
+  if (!response.ok) {
+    throw new Error(`Failed to fetch transactions: ${response.status}`)
+  }
+
+  return response.json()
+}
+export async function createTransaction(transaction: {
+  sourceAccountId: number
+  destinationAccountId?: number | null
+  transactionType: 'DEPOSIT' | 'WITHDRAWAL' | 'TRANSFER'
+  amount: number
+  description: string
+}) {
+  const response = await fetch(`${API_BASE_URL}/transactions`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(transaction),
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(`Transaction failed: ${error}`)
+  }
+
+  return response.json()
+}

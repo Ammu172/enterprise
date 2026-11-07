@@ -50,4 +50,11 @@ public Account updateAccount(
     public void deleteAccount(@PathVariable Long id) {
         accountService.deleteAccount(id);
     }
+@PatchMapping("/{id}/balance")
+public Account adjustBalance(
+        @PathVariable Long id,
+        @RequestBody java.math.BigDecimal adjustment) {
+
+    return accountService.adjustBalance(id, adjustment);
+}
 }
