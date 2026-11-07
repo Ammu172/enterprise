@@ -405,10 +405,14 @@ const filteredTransactions = transactions.filter((transaction) => {
     .toLowerCase()
     .includes(transactionSearch.toLowerCase())
 
-  const matchesType =
-    transactionTypeFilter === 'All' ||
-    getTransactionType(transaction) === transactionTypeFilter.toLowerCase()
+  const type = getTransactionType(transaction)
 
+const matchesType =
+  transactionTypeFilter === 'All' ||
+  (transactionTypeFilter === 'Credit' &&
+    ['credit', 'deposit'].includes(type)) ||
+  (transactionTypeFilter === 'Debit' &&
+    ['debit', 'withdrawal', 'transfer'].includes(type))
   const transactionDate = new Date(
     `${String(transaction.createdAt).slice(0, 10)}T00:00:00`
   )
@@ -427,18 +431,19 @@ const filteredTransactions = transactions.filter((transaction) => {
 
   return matchesSearch && matchesType && matchesDate
 })
-const totalCredits = filteredTransactions
+const totalCredits = transactions
   .filter((transaction) =>
     ['credit', 'deposit'].includes(getTransactionType(transaction))
   )
   .reduce((total, transaction) => total + Number(transaction.amount), 0)
 
-const totalDebits = filteredTransactions
+const totalDebits = transactions
   .filter((transaction) =>
     ['debit', 'withdrawal', 'transfer'].includes(getTransactionType(transaction))
   )
   .reduce((total, transaction) => total + Number(transaction.amount), 0)
-const totalTransactions = filteredTransactions.length
+
+const totalTransactions = transactions.length
   return (
     <div className="dashboard">
 {customerLoading && <p>Loading customer details...</p>}
@@ -877,39 +882,42 @@ const totalTransactions = filteredTransactions.length
     <td>{getTransactionDescription(transaction)}</td>
 
     <td>{formatDate(String(transaction.createdAt).slice(0, 10))}</td>
-
     <td>
       <span
         className={
-          getTransactionType(transaction) === 'credit' ? 'credit' : 'debit'
+          ['credit', 'deposit'].includes(getTransactionType(transaction))
+            ? 'credit'
+            : 'debit'
         }
       >
-        {getTransactionType(transaction) === 'withdrawal'
-  ? 'Withdrawal'
-  : getTransactionType(transaction) === 'credit'
-    ? 'Credit'
-    : getTransactionType(transaction) === 'transfer'
-      ? 'Transfer'
-      : 'Debit'}
+        {['credit', 'deposit'].includes(getTransactionType(transaction))
+          ? 'Credit'
+          : getTransactionType(transaction) === 'transfer'
+            ? 'Transfer'
+            : 'Debit'}
       </span>
     </td>
 
     <td
       className={
-        getTransactionType(transaction) === 'credit' ? 'credit' : 'debit'
+        ['credit', 'deposit'].includes(getTransactionType(transaction))
+          ? 'credit'
+          : 'debit'
       }
     >
       {formatAmount(
         Number(transaction.amount),
-        getTransactionType(transaction) === 'credit' ? 'Credit' : 'Debit'
+        ['credit', 'deposit'].includes(getTransactionType(transaction))
+          ? 'Credit'
+          : 'Debit'
       )}
-    </td>
+        </td>
 
-    <td>
-      <span className="transaction-completed">
-        {transaction.status}
-      </span>
-    </td>
+      <td>
+        <span className="transaction-completed">
+          {transaction.status}
+        </span>
+      </td>
   </tr>
 ))}
 
@@ -995,13 +1003,24 @@ const totalTransactions = filteredTransactions.length
         <section className="quick-section">
           <h2>Quick Actions</h2>
           <div className="quick-grid">
-            <button onClick={() => alert('Money transfer will be implemented later.')}>
+            <button
+              type="button"
+              onClick={() => setSelectedPage('Transfers')}
+            >
               <span>⇄</span> Transfer Money
             </button>
-            <button onClick={() => alert('Beneficiary management will be implemented later.')}>
+
+            <button
+              type="button"
+              onClick={() => setSelectedPage('Beneficiaries')}
+            >
               <span>＋</span> Add Beneficiary
             </button>
-            <button onClick={() => alert('Account details will be implemented later.')}>
+
+            <button
+              type="button"
+              onClick={() => setSelectedPage('My Accounts')}
+            >
               <span>▣</span> Account Details
             </button>
           </div>
