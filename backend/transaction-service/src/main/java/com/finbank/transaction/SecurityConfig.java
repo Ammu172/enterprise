@@ -2,7 +2,7 @@ package com.finbank.transaction;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.config.Customizer;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -35,7 +35,12 @@ public class SecurityConfig {
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/health").permitAll()
-                .requestMatchers("/api/transactions/**").authenticated()
+                .requestMatchers(HttpMethod.GET, "/api/transactions")
+                    .hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/transactions/**")
+                    .hasAnyRole("CUSTOMER", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/transactions")
+                    .hasAnyRole("CUSTOMER", "ADMIN")
                 .anyRequest().authenticated())
             .oauth2ResourceServer(oauth2 -> oauth2
                 .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtConverter)));

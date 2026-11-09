@@ -9,15 +9,46 @@ import { useEffect, useState } from 'react'
 import './Dashboard.css'
 
 function Dashboard() {
+const customerId = Number(sessionStorage.getItem('finbank-customer-id'))
+interface Account {
+  id: number
+  accountNumber: string
+  accountType: string
+  balance: number | string
+  status: string
+}
+
+interface Transaction {
+  id: number
+  transactionType: string
+  description: string
+  createdAt: string
+  amount: number | string
+  status: string
+}
 const [transactionSearch, setTransactionSearch] = useState('')
 const [transactionTypeFilter, setTransactionTypeFilter] = useState('All')
 const [transactionDateFilter, setTransactionDateFilter] = useState('All')
 const [customerLoading, setCustomerLoading] = useState(true)
 const [customerError, setCustomerError] = useState('')
-const [accounts, setAccounts] = useState<any[]>([])
+const [customerName, setCustomerName] = useState(
+ () => sessionStorage.getItem('finbank-customer-name') || 'Sample Customer'
+)
+
+const [customerEmail, setCustomerEmail] = useState(
+  () => sessionStorage.getItem('finbank-customer-email') || 'customer@finbank.demo'
+)
+
+const [customerPhone, setCustomerPhone] = useState(
+  () => localStorage.getItem('finbank-customer-phone') || '+91 98765 43210'
+)
+const [editName, setEditName] = useState(customerName)
+const [editEmail, setEditEmail] = useState(customerEmail)
+const [editPhone, setEditPhone] = useState(customerPhone)
+const [accounts, setAccounts] = useState<Account[]>([])
 const [accountLoading, setAccountLoading] = useState(true)
 const [accountError, setAccountError] = useState('')
-const [transactions, setTransactions] = useState<any[]>([])
+const [transactions, setTransactions] = useState<Transaction[]>([])
 const [transactionLoading, setTransactionLoading] = useState(true)
 const [transactionError, setTransactionError] = useState('')
 const totalAccountBalance = accounts.reduce(
@@ -28,7 +59,7 @@ const totalAccountBalance = accounts.reduce(
 useEffect(() => {
   async function loadCustomer() {
     try {
-      const customer = await getCustomerById(3)
+      const customer = await getCustomerById(customerId)
 
       const fullName = `${customer.firstName} ${customer.lastName}`
 
@@ -53,11 +84,11 @@ useEffect(() => {
   }
 
   loadCustomer()
-}, [])
+}, [customerId])
 useEffect(() => {
   async function loadAccounts() {
     try {
-      const data = await getAccountsByCustomerId(3)
+      const data = await getAccountsByCustomerId()
       setAccounts(data)
       setAccountError('')
     } catch (error) {
@@ -72,7 +103,7 @@ useEffect(() => {
   }
 
   loadAccounts()
-}, [])
+}, [customerId])
 useEffect(() => {
   if (accountLoading) return
 
@@ -103,7 +134,8 @@ useEffect(() => {
   }
 
   loadTransactions()
-}, [accounts, accountLoading])
+}, [accounts, accountLoading, setTransactions])
+
 
 const handleReviewTransfer = () => {
   const amount = Number(transferAmount)
@@ -189,7 +221,7 @@ const handleConfirmTransfer = async () => {
     setTransferDescription('')
 
     try {
-      const updatedAccounts = await getAccountsByCustomerId(3)
+      const updatedAccounts = await getAccountsByCustomerId()
       setAccounts(updatedAccounts)
 
       const results = await Promise.all(
@@ -259,7 +291,7 @@ const handleMoneyTransaction = async () => {
     setMoneyAmount('')
     setMoneyDescription('')
 
-    const updatedAccounts = await getAccountsByCustomerId(3)
+    const updatedAccounts = await getAccountsByCustomerId()
     setAccounts(updatedAccounts)
 
     const results = await Promise.all(
@@ -296,23 +328,6 @@ const [moneyAmount, setMoneyAmount] = useState('')
 const [moneyDescription, setMoneyDescription] = useState('')
 const [moneyMessage, setMoneyMessage] = useState('')
 const [isMoneySubmitting, setIsMoneySubmitting] = useState(false)
-
-
-
-const [customerName, setCustomerName] = useState(
-  () => localStorage.getItem('finbank-customer-name') || 'Sample Customer'
-)
-
-const [customerEmail, setCustomerEmail] = useState(
-  () => localStorage.getItem('finbank-customer-email') || 'customer@finbank.demo'
-)
-
-const [customerPhone, setCustomerPhone] = useState(
-  () => localStorage.getItem('finbank-customer-phone') || '+91 98765 43210'
-)
-const [editName, setEditName] = useState(customerName)
-const [editEmail, setEditEmail] = useState(customerEmail)
-const [editPhone, setEditPhone] = useState(customerPhone)
 useEffect(() => {
   localStorage.setItem('finbank-customer-name', customerName)
   localStorage.setItem('finbank-customer-email', customerEmail)
@@ -357,7 +372,7 @@ useEffect(() => {
 useEffect(() => {
   async function loadAccounts() {
     try {
-      const data = await getAccountsByCustomerId(3)
+      const data = await getAccountsByCustomerId()
       setAccounts(data)
       setAccountError('')
     } catch (error) {
@@ -394,10 +409,10 @@ const formatDate = (date: string) => {
 
 
 
-const getTransactionType = (transaction: any) =>
+const getTransactionType = (transaction: Transaction) =>
   String(transaction.transactionType || '').toLowerCase()
 
-const getTransactionDescription = (transaction: any) =>
+const getTransactionDescription = (transaction: Transaction) =>
   transaction.description || `Transaction ${transaction.id}`
 
 const filteredTransactions = transactions.filter((transaction) => {
@@ -479,7 +494,13 @@ const totalTransactions = transactions.length
        
       </nav>
 
-        <button className="logout-button" onClick={() => window.location.reload()}>
+        <button
+  className="logout-button"
+  onClick={() => {
+    sessionStorage.clear()
+    window.location.reload()
+  }}
+>
           ↪ Sign out
         </button>
       </aside>

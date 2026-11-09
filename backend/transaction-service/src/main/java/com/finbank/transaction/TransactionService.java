@@ -1,3 +1,4 @@
+
 package com.finbank.transaction;
 
 import org.springframework.stereotype.Service;
@@ -19,12 +20,14 @@ public class TransactionService {
 
     public TransactionService(
             TransactionRepository transactionRepository,
-            @Value("${account.service.url}") String accountServiceUrl) {
+            @Value("${account.service.url}") String accountServiceUrl,
+            @Value("${internal.service.token}") String internalServiceToken) {
 
         this.transactionRepository = transactionRepository;
 
         this.restClient = RestClient.builder()
                 .baseUrl(accountServiceUrl)
+                .defaultHeader("X-Service-Token", internalServiceToken)
                 .build();
     }
 
@@ -32,17 +35,33 @@ public class TransactionService {
         return transactionRepository.findAll();
     }
 
-    public Transaction getTransactionById(Long id) {
-        return transactionRepository.findById(id)
+    public Transaction getTransactionById(Long id, Long customerId) {
+
+        Transaction transaction = transactionRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Transaction not found"));
+
+        verifyOwnership(transaction.getSourceAccountId(), customerId);
+
+        if (transaction.getDestinationAccountId() != null) {
+            verifyOwnership(transaction.getDestinationAccountId(), customerId);
+        }
+
+        return transaction;
     }
 
-    public List<Transaction> getTransactionsByAccountId(Long accountId) {
-        return transactionRepository.findBySourceAccountId(accountId);
+    public List<Transaction> getTransactionsByAccountId(
+            Long accountId, Long customerId) {
+
+        verifyOwnership(accountId, customerId);
+
+        return transactionRepository
+                .findBySourceAccountIdOrDestinationAccountId(
+                        accountId, accountId);
     }
 
-    public Transaction createTransaction(Transaction transaction) {
+    public Transaction createTransaction(
+            Transaction transaction, Long customerId) {
 
         if (transaction.getSourceAccountId() == null) {
             throw new ResponseStatusException(
@@ -56,6 +75,12 @@ public class TransactionService {
                     HttpStatus.BAD_REQUEST, "Amount must be greater than zero");
         }
 
+        if (transaction.getTransactionType() == null
+                || transaction.getTransactionType().isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Transaction type is required");
+        }
+
         String type = transaction.getTransactionType()
                 .trim().toUpperCase(Locale.ROOT);
 
@@ -64,7 +89,7 @@ public class TransactionService {
         Long sourceId = transaction.getSourceAccountId();
         Long destinationId = transaction.getDestinationAccountId();
 
-        validateAccount(sourceId);
+        verifyOwnership(sourceId, customerId);
 
         switch (type) {
 
@@ -98,12 +123,10 @@ public class TransactionService {
                             "A different destination account is required");
                 }
 
-                validateAccount(destinationId);
+                verifyOwnership(destinationId, customerId);
 
-                // Debit source account first
                 adjustBalance(sourceId, amount.negate());
 
-                // Credit destination account
                 try {
                     adjustBalance(destinationId, amount);
                 } catch (RuntimeException ex) {
@@ -111,7 +134,6 @@ public class TransactionService {
                     throw ex;
                 }
 
-                // Save transaction record
                 try {
                     transaction.setStatus("RECORDED");
                     return transactionRepository.save(transaction);
@@ -128,12 +150,32 @@ public class TransactionService {
         }
     }
 
-    private void validateAccount(Long accountId) {
+    private void verifyOwnership(Long accountId, Long customerId) {
+
+        AccountInfo account = getAccount(accountId);
+
+        if (account.getCustomerId() == null
+                || !account.getCustomerId().equals(customerId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You are not authorized to access this account");
+        }
+    }
+
+    private AccountInfo getAccount(Long accountId) {
+
         try {
-            restClient.get()
+            AccountInfo account = restClient.get()
                     .uri("/api/accounts/{id}", accountId)
                     .retrieve()
-                    .toBodilessEntity();
+                    .body(AccountInfo.class);
+
+            if (account == null) {
+                throw new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Account not found");
+            }
+
+            return account;
 
         } catch (HttpClientErrorException.NotFound ex) {
             throw new ResponseStatusException(
@@ -142,6 +184,7 @@ public class TransactionService {
     }
 
     private void adjustBalance(Long accountId, BigDecimal adjustment) {
+
         try {
             restClient.patch()
                     .uri("/api/accounts/{id}/balance", accountId)
@@ -152,12 +195,13 @@ public class TransactionService {
         } catch (HttpClientErrorException ex) {
             throw new ResponseStatusException(
                     HttpStatus.valueOf(ex.getStatusCode().value()),
-                    "Account balance update failed: " + ex.getResponseBodyAsString());
+                    "Account balance update failed");
         }
     }
 
     private void compensate(
-            Long accountId, BigDecimal adjustment, RuntimeException originalError) {
+            Long accountId, BigDecimal adjustment,
+            RuntimeException originalError) {
 
         try {
             adjustBalance(accountId, adjustment);

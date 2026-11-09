@@ -1,5 +1,6 @@
 import Dashboard from './Dashboard'
 import { useState, type FormEvent } from 'react'
+import { loginCustomer } from './services/api'
 import './App.css'
 
 function App() {
@@ -16,10 +17,25 @@ function App() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [message, setMessage] = useState('')
 
-  const handleLogin = (event: FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
   event.preventDefault()
-  setIsDashboard(true)
- }
+  setMessage('')
+
+  try {
+    const result = await loginCustomer({ email, password })
+
+    sessionStorage.setItem('finbank-token', result.token)
+    sessionStorage.setItem('finbank-customer-id', String(result.customerId))
+    sessionStorage.setItem('finbank-customer-name', result.fullName)
+    sessionStorage.setItem('finbank-customer-email', result.email)
+
+    setIsDashboard(true)
+  } catch (error) {
+    setMessage(
+      error instanceof Error ? error.message : 'Login failed. Please try again.'
+    )
+  }
+}
 
   const handleSignup = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()

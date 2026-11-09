@@ -24,3 +24,21 @@ secrets/
 # Logs
 logs/
 *.log
+
+# Secrets and credentials
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.jks
+finbank.env
+
+# Build output and dependencies
+**/target/
+**/node_modules/
+**/dist/
+
+# Logs
+*.log
+logs/
