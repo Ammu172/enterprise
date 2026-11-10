@@ -1,8 +1,10 @@
+
 import {
   getAccountsByCustomerId,
   getCustomerById,
   getTransactionsByAccountId,
   createTransaction,
+  createSavingsAccount,
 } from './services/api'
 import { useEffect, useState } from 'react'
 
@@ -85,6 +87,43 @@ useEffect(() => {
 
   loadCustomer()
 }, [customerId])
+useEffect(() => {
+  if (accounts.length === 0) {
+    setFromAccount('')
+    setToAccount('')
+    setMoneyAccount('')
+    return
+  }
+
+  const firstAccountId = String(accounts[0].id)
+
+  const validFromAccount = accounts.some(
+    (account) => String(account.id) === fromAccount
+  ) ? fromAccount : firstAccountId
+
+  setFromAccount(validFromAccount)
+
+  setToAccount((current) => {
+    if (
+      current !== validFromAccount &&
+      accounts.some((account) => String(account.id) === current)
+    ) {
+      return current
+    }
+
+    const otherAccount = accounts.find(
+      (account) => String(account.id) !== validFromAccount
+    )
+
+    return otherAccount ? String(otherAccount.id) : ''
+  })
+
+  setMoneyAccount((current) =>
+    accounts.some((account) => String(account.id) === current)
+      ? current
+      : firstAccountId
+  )
+}, [accounts])
 useEffect(() => {
   async function loadAccounts() {
     try {
@@ -313,8 +352,8 @@ const handleMoneyTransaction = async () => {
 
 const [selectedPage, setSelectedPage] = useState('Dashboard')
 
-const [fromAccount, setFromAccount] = useState('1')
-const [toAccount, setToAccount] = useState('3')
+const [fromAccount, setFromAccount] = useState('')
+const [toAccount, setToAccount] = useState('')
 
 const [transferAmount, setTransferAmount] = useState('')
 const [transferDescription, setTransferDescription] = useState('')
@@ -323,7 +362,7 @@ const [transferMessage, setTransferMessage] = useState('')
   const [isEditingProfile, setIsEditingProfile] = useState(false)
 const [isTransferSubmitting, setIsTransferSubmitting] = useState(false)
 const [moneyAction, setMoneyAction] = useState<'DEPOSIT' | 'WITHDRAWAL'>('DEPOSIT')
-const [moneyAccount, setMoneyAccount] = useState('1')
+const [moneyAccount, setMoneyAccount] = useState('')
 const [moneyAmount, setMoneyAmount] = useState('')
 const [moneyDescription, setMoneyDescription] = useState('')
 const [moneyMessage, setMoneyMessage] = useState('')
@@ -972,7 +1011,26 @@ const totalTransactions = transactions.length
 {(selectedPage === 'Dashboard' || selectedPage === 'My Accounts') && (
   <section id="accounts" className="account-section">
     <h2>My Accounts</h2>
-
+<button
+  type="button"
+  onClick={async () => {
+    try {
+      await createSavingsAccount()
+      const updatedAccounts = await getAccountsByCustomerId()
+      setAccounts(updatedAccounts)
+      setAccountError('')
+      alert('New Savings account created successfully!')
+    } catch (error) {
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Unable to create account'
+      )
+    }
+  }}
+>
+  + Create Savings Account
+</button>
     {accountLoading && <p>Loading accounts...</p>}
 
     {accountError && <p>{accountError}</p>}

@@ -1,6 +1,6 @@
 import Dashboard from './Dashboard'
 import { useState, type FormEvent } from 'react'
-import { loginCustomer } from './services/api'
+import { loginCustomer, registerCustomer } from './services/api'
 import './App.css'
 
 function App() {
@@ -37,22 +37,53 @@ function App() {
   }
 }
 
-  const handleSignup = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
+const handleSignup = async (event: FormEvent<HTMLFormElement>) => {
+  event.preventDefault()
+  setMessage('')
 
-    if (password.length < 8) {
-      setMessage('Password must contain at least 8 characters.')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      setMessage('Passwords do not match.')
-      return
-    }
-
-    setMessage('Registration form validated! Backend integration will be added later.')
+  if (password.length < 12) {
+    setMessage('Password must contain at least 12 characters.')
+    return
   }
 
+  if (password !== confirmPassword) {
+    setMessage('Passwords do not match.')
+    return
+  }
+
+  if (!/^[0-9]{10}$/.test(phone.trim())) {
+    setMessage('Please enter a valid 10-digit phone number.')
+    return
+  }
+
+  const nameParts = name.trim().split(/\s+/)
+
+  if (nameParts.length < 2) {
+    setMessage('Please enter your first name and last name.')
+    return
+  }
+
+  try {
+    const result = await registerCustomer({
+      firstName: nameParts[0],
+      lastName: nameParts.slice(1).join(' '),
+      email: email.trim(),
+      phone: phone.trim(),
+      password,
+    })
+
+    sessionStorage.setItem('finbank-token', result.token)
+    sessionStorage.setItem('finbank-customer-id', String(result.customerId))
+    sessionStorage.setItem('finbank-customer-name', result.fullName)
+    sessionStorage.setItem('finbank-customer-email', result.email)
+
+    setIsDashboard(true)
+  } catch (error) {
+    setMessage(
+      error instanceof Error ? error.message : 'Registration failed. Please try again.'
+    )
+  }
+}
   const switchPage = (signup: boolean) => {
     setIsSignup(signup)
     setMessage('')
@@ -183,10 +214,10 @@ function App() {
                 <input
                   id="signup-password"
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Minimum 8 characters"
+                  placeholder="Minimum 12 characters"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  minLength={8}
+                  minLength={12}
                   required
                 />
                 <button

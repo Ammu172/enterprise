@@ -35,6 +35,15 @@ public class AccountController {
 
         return accountService.getAccountsByCustomerId(customerId);
     }
+@PostMapping("/me")
+@ResponseStatus(HttpStatus.CREATED)
+public Account createMyAccount(
+        @AuthenticationPrincipal Jwt jwt) {
+
+    Long customerId = Long.valueOf(jwt.getSubject());
+
+    return accountService.createDefaultSavingsAccount(customerId);
+}
 
     // Admin or Transaction Service: retrieve an account
     @GetMapping("/{id}")
@@ -56,6 +65,15 @@ public class AccountController {
     public Account createAccount(@Valid @RequestBody Account account) {
         return accountService.createAccount(account);
     }
+// Customer Service: create a default savings account
+@PostMapping("/internal")
+@ResponseStatus(HttpStatus.CREATED)
+public Account createInternalAccount(
+        @Valid @RequestBody InternalAccountRequest request) {
+
+    return accountService.createDefaultSavingsAccount(
+            request.getCustomerId());
+}
 
     // Admin: update an account
     @PutMapping("/{id}")

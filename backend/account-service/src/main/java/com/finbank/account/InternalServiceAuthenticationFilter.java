@@ -18,10 +18,14 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 public class InternalServiceAuthenticationFilter extends OncePerRequestFilter {
 
-    private final String serviceToken;
+    private final String transactionToken;
+    private final String customerServiceToken;
 
-    public InternalServiceAuthenticationFilter(String serviceToken) {
-        this.serviceToken = serviceToken;
+    public InternalServiceAuthenticationFilter(
+            String transactionToken,
+            String customerServiceToken) {
+        this.transactionToken = transactionToken;
+        this.customerServiceToken = customerServiceToken;
     }
 
     @Override
@@ -32,34 +36,51 @@ public class InternalServiceAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String path = request.getRequestURI();
+        String suppliedToken = request.getHeader("X-Service-Token");
 
-        boolean allowedRequest =
+        boolean transactionRequest =
                 (HttpMethod.GET.matches(request.getMethod())
                         && path.matches("^/api/accounts/[0-9]+$"))
                 ||
                 (HttpMethod.PATCH.matches(request.getMethod())
                         && path.matches("^/api/accounts/[0-9]+/balance$"));
 
-        if (allowedRequest) {
-            String suppliedToken = request.getHeader("X-Service-Token");
+        boolean customerServiceRequest =
+                HttpMethod.POST.matches(request.getMethod())
+                && path.equals("/api/accounts/internal");
 
-            if (suppliedToken != null && serviceToken != null
-                    && MessageDigest.isEqual(
-                            suppliedToken.getBytes(StandardCharsets.UTF_8),
-                            serviceToken.getBytes(StandardCharsets.UTF_8))) {
+        if (suppliedToken != null) {
 
-                var authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                "transaction-service",
-                                null,
-                                List.of(new SimpleGrantedAuthority(
-                                        "ROLE_SERVICE_TRANSACTION")));
+            if (transactionRequest
+                    && matchesToken(suppliedToken, transactionToken)) {
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                setServiceAuthentication(
+                        "transaction-service", "ROLE_SERVICE_TRANSACTION");
+
+            } else if (customerServiceRequest
+                    && matchesToken(suppliedToken, customerServiceToken)) {
+
+                setServiceAuthentication(
+                        "customer-service", "ROLE_SERVICE_CUSTOMER");
             }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private boolean matchesToken(String supplied, String expected) {
+        return expected != null && MessageDigest.isEqual(
+                supplied.getBytes(StandardCharsets.UTF_8),
+                expected.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private void setServiceAuthentication(String name, String role) {
+        var authentication =
+                new UsernamePasswordAuthenticationToken(
+                        name,
+                        null,
+                        List.of(new SimpleGrantedAuthority(role)));
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 }

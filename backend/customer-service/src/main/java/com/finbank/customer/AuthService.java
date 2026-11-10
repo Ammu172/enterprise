@@ -1,5 +1,7 @@
 package com.finbank.customer;
-
+import java.util.Map;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.client.RestClient;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,17 +15,25 @@ public class AuthService {
     private final UserCredentialRepository credentialRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+private final RestClient accountServiceClient;
 
+ 
     public AuthService(
             CustomerRepository customerRepository,
             UserCredentialRepository credentialRepository,
             PasswordEncoder passwordEncoder,
-            JwtService jwtService) {
+            JwtService jwtService,
+            @Value("${account.service.url}") String accountServiceUrl,
+            @Value("${internal.service.account-creation-token}") String accountCreationToken) {
 
         this.customerRepository = customerRepository;
         this.credentialRepository = credentialRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtService = jwtService;
+this.accountServiceClient = RestClient.builder()
+        .baseUrl(accountServiceUrl)
+        .defaultHeader("X-Service-Token", accountCreationToken)
+        .build();
     }
 
     @Transactional
@@ -52,6 +62,12 @@ public class AuthService {
         credential.setRole("CUSTOMER");
 
         credentialRepository.save(credential);
+// Create a default savings account for the new customer
+accountServiceClient.post()
+        .uri("/api/accounts/internal")
+        .body(Map.of("customerId", savedCustomer.getId()))
+        .retrieve()
+        .toBodilessEntity();
 
         String token = jwtService.generateToken(
                 savedCustomer.getId(),

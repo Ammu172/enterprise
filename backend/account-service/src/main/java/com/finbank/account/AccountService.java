@@ -8,12 +8,12 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
-
+import java.security.SecureRandom;
 import java.util.List;
 
 @Service
 public class AccountService {
-
+    private final SecureRandom secureRandom = new SecureRandom();
     private final AccountRepository accountRepository;
     private final RestClient restClient;
     public AccountService(
@@ -66,7 +66,41 @@ this.restClient = RestClient.builder()
 
         return accountRepository.save(account);
     }
+    public Account createDefaultSavingsAccount(Long customerId) {
 
+    // Verify that the customer exists
+ 
+
+    // Generate a unique 12-digit account number
+    String accountNumber = null;
+
+    for (int i = 0; i < 10; i++) {
+        long number = 100000000000L
+                + secureRandom.nextLong(900000000000L);
+
+        String candidate = String.valueOf(number);
+
+        if (!accountRepository.existsByAccountNumber(candidate)) {
+            accountNumber = candidate;
+            break;
+        }
+    }
+
+    if (accountNumber == null) {
+        throw new ResponseStatusException(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "Unable to generate a unique account number");
+    }
+
+    Account account = new Account();
+    account.setCustomerId(customerId);
+    account.setAccountNumber(accountNumber);
+    account.setAccountType("SAVINGS");
+    account.setBalance(new BigDecimal("0.00"));
+    account.setStatus("ACTIVE");
+
+    return accountRepository.save(account);
+}
     public Account updateAccount(Long id, Account updatedAccount) {
 
         Account existingAccount = accountRepository.findById(id)

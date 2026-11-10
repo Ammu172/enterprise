@@ -41,6 +41,21 @@ export async function getAccountsByCustomerId() {
 
   return response.json()
 }
+export async function createSavingsAccount() {
+  const response = await fetch(
+    `${API_BASE_URL}/accounts/me`,
+    {
+      method: 'POST',
+      headers: authHeaders(),
+    }
+  )
+
+  if (!response.ok) {
+    throw new Error(`Failed to create account: ${response.status}`)
+  }
+
+  return response.json()
+}
 export async function getTransactionsByAccountId(accountId: number) {
   const response = await fetch(
     `${API_BASE_URL}/transactions/account/${accountId}`,
@@ -93,6 +108,34 @@ export async function loginCustomer(credentials: {
   if (!response.ok) {
     const error = await response.text()
     throw new Error(error || `Login failed: ${response.status}`)
+  }
+
+  return response.json() as Promise<{
+    customerId: number
+    email: string
+    fullName: string
+    token: string
+    role: string
+  }>
+}
+export async function registerCustomer(customer: {
+  firstName: string
+  lastName: string
+  email: string
+  phone: string
+  password: string
+}) {
+  const response = await fetch(`${API_BASE_URL}/auth/register`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(customer),
+  })
+
+  if (!response.ok) {
+    const error = await response.text()
+    throw new Error(error || `Registration failed: ${response.status}`)
   }
 
   return response.json() as Promise<{

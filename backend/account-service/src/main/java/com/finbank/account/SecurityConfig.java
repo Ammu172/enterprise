@@ -18,7 +18,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            @Value("${internal.service.transaction-token}") String serviceToken)
+            @Value("${internal.service.transaction-token}") String serviceToken,
+            @Value("${internal.service.customer-token}") String customerServiceToken)
+          
             throws Exception {
 
         JwtGrantedAuthoritiesConverter authoritiesConverter =
@@ -37,16 +39,22 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-            .addFilterBefore(
-                new InternalServiceAuthenticationFilter(serviceToken),
-                BearerTokenAuthenticationFilter.class)
+  
+             
 
+             .addFilterBefore(
+    new InternalServiceAuthenticationFilter(
+        serviceToken, customerServiceToken),
+    BearerTokenAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/health").permitAll()
 
                 .requestMatchers(HttpMethod.GET, "/api/accounts/me")
                     .hasRole("CUSTOMER")
-
+.requestMatchers(HttpMethod.POST, "/api/accounts/me")
+    .hasRole("CUSTOMER")
+                  .requestMatchers(HttpMethod.POST, "/api/accounts/internal")
+    .hasRole("SERVICE_CUSTOMER")
                 .requestMatchers(HttpMethod.GET, "/api/accounts/*")
                     .hasAnyRole("ADMIN", "SERVICE_TRANSACTION")
 
