@@ -1,0 +1,63 @@
+services:
+  customer-service:
+    image: ammu172/finbank-customer-service:1.1
+    
+    networks:
+      - finbank-network
+    volumes:
+      - /etc/finbank/finbank.env:/etc/finbank/finbank.env:ro
+      - /etc/finbank/jwt-private.pem:/etc/finbank/jwt-private.pem:ro
+      - /etc/finbank/jwt-public.pem:/etc/finbank/jwt-public.pem:ro
+    restart: unless-stopped
+
+  account-service:
+    image: ammu172/finbank-account-service:1.1
+    
+    networks:
+      - finbank-network
+    volumes:
+      - /etc/finbank/finbank.env:/etc/finbank/finbank.env:ro
+      - /etc/finbank/jwt-private.pem:/etc/finbank/jwt-private.pem:ro
+      - /etc/finbank/jwt-public.pem:/etc/finbank/jwt-public.pem:ro
+    restart: unless-stopped
+
+  transaction-service:
+    image: ammu172/finbank-transaction-service:1.0
+  
+    networks:
+      - finbank-network
+    volumes:
+      - /etc/finbank/finbank.env:/etc/finbank/finbank.env:ro
+      - /etc/finbank/jwt-private.pem:/etc/finbank/jwt-private.pem:ro
+      - /etc/finbank/jwt-public.pem:/etc/finbank/jwt-public.pem:ro
+    restart: unless-stopped
+  notification-service:
+    image: ammu172/finbank-notification-service:1.0
+    
+    networks:
+      - finbank-network
+    volumes:
+      - /etc/finbank/finbank.env:/etc/finbank/finbank.env:ro
+      - /etc/finbank/jwt-private.pem:/etc/finbank/jwt-private.pem:ro
+      - /etc/finbank/jwt-public.pem:/etc/finbank/jwt-public.pem:ro
+    restart: unless-stopped
+  api-gateway:
+    image: ammu172/finbank-api-gateway:1.1
+  
+    networks:
+      - finbank-network
+    volumes:
+      - /etc/finbank/finbank.env:/etc/finbank/finbank.env:ro
+      - /etc/finbank/jwt-private.pem:/etc/finbank/jwt-private.pem:ro
+      - /etc/finbank/jwt-public.pem:/etc/finbank/jwt-public.pem:ro
+    restart: unless-stopped
+  frontend:
+    image: ammu172/finbank-frontend:1.0
+    ports:
+      - "80:80"
+    networks:
+      - finbank-network
+    restart: unless-stopped
+networks:
+  finbank-network:
+    external: true
