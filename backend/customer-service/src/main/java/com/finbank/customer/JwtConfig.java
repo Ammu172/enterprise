@@ -1,6 +1,7 @@
 
 package com.finbank.customer;
-
+import java.nio.file.Files;
+import org.springframework.beans.factory.annotation.Value;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyFactory;
@@ -27,6 +28,11 @@ import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 
 @Configuration
 public class JwtConfig {
+	@Value("${jwt.private-key-path:/etc/finbank/jwt-private.pem}")
+private String privateKeyPath;
+
+@Value("${jwt.public-key-path:/etc/finbank/jwt-public.pem}")
+private String publicKeyPath;
 
     private String readKey(String path) throws Exception {
         return Files.readString(Path.of(path))
@@ -35,19 +41,19 @@ public class JwtConfig {
                 .replaceAll("\\s", "");
     }
 
-    @Bean
+       @Bean
     public RSAPrivateKey jwtPrivateKey() throws Exception {
         byte[] keyBytes = Base64.getDecoder().decode(
-                readKey("/etc/finbank/jwt-private.pem"));
+                readKey(privateKeyPath));
 
         return (RSAPrivateKey) KeyFactory.getInstance("RSA")
                 .generatePrivate(new PKCS8EncodedKeySpec(keyBytes));
     }
 
-    @Bean
+       @Bean
     public RSAPublicKey jwtPublicKey() throws Exception {
         byte[] keyBytes = Base64.getDecoder().decode(
-                readKey("/etc/finbank/jwt-public.pem"));
+                readKey(publicKeyPath));
 
         return (RSAPublicKey) KeyFactory.getInstance("RSA")
                 .generatePublic(new X509EncodedKeySpec(keyBytes));
