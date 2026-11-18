@@ -42,3 +42,5 @@ finbank.env
 # Logs
 *.log
 logs/
+eks/secret.yaml
+*.swp

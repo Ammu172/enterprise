@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: account-service
+  namespace: finbank
+
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+
+  selector:
+    matchLabels:
+      app: account-service
+
+  template:
+    metadata:
+      labels:
+        app: account-service
+
+    spec:
+      containers:
+        - name: account-service
+          image: ammu172/finbank-account-service:1.2
+
+          ports:
+            - containerPort: 8081
+
+          volumeMounts:
+            - name: finbank-config
+              mountPath: /etc/finbank
+              readOnly: true
+
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 300m
+              memory: 384Mi
+
+      volumes:
+        - name: finbank-config
+          secret:
+            secretName: finbank-config

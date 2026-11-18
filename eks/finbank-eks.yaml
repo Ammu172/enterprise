@@ -1,0 +1,44 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: finbank-eks
+  region: ap-southeast-2
+  version: "1.36"
+
+vpc:
+  id: vpc-079a8a68cdd6a5f2b
+  controlPlaneSubnetIDs:
+    - subnet-0ffa663df15a81e43
+    - subnet-0161e2bef7975dd0e
+  publicAccessCIDRs:
+    - 54.206.111.170/32
+  clusterEndpoints:
+    publicAccess: true
+    privateAccess: true
+  nat:
+    gateway: Disable
+  subnets:
+    public:
+      ap-southeast-2a:
+        id: subnet-0b3d36613f3ffc52c
+      ap-southeast-2b:
+        id: subnet-0d9214f405d999095
+    private:
+      ap-southeast-2a:
+        id: subnet-0ffa663df15a81e43
+      ap-southeast-2b:
+        id: subnet-0161e2bef7975dd0e
+
+managedNodeGroups:
+  - name: finbank-workers
+    instanceType: t3.medium
+    desiredCapacity: 2
+    minSize: 2
+    maxSize: 2
+    volumeSize: 20
+    volumeEncrypted: true
+    privateNetworking: false
+    availabilityZones:
+      - ap-southeast-2a
+      - ap-southeast-2b
